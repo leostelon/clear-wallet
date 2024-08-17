@@ -9,7 +9,7 @@ interface EIP6963ProviderInfo {
     name: string;
     icon: string;
     rdns: string;
-  }
+}
 
 const ProviderInfo: EIP6963ProviderInfo = {
     uuid: '1fa914a1-f8c9-4c74-8d84-4aa93dc90eec',
@@ -23,24 +23,24 @@ const MAX_PROMISES = 50
 function loadEIP1193Provider(provider: any) {
 
     function announceProvider() {
-      const info: EIP6963ProviderInfo = ProviderInfo
-      window.dispatchEvent(
-        new CustomEvent("eip6963:announceProvider", {
-          detail: Object.freeze({ info, provider }),
-        })
-      );
+        const info: EIP6963ProviderInfo = ProviderInfo
+        window.dispatchEvent(
+            new CustomEvent("eip6963:announceProvider", {
+                detail: Object.freeze({ info, provider }),
+            })
+        );
     }
-  
+
     window.addEventListener(
-      "eip6963:requestProvider",
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      (event: any) => {
-        announceProvider();
-      }
+        "eip6963:requestProvider",
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        (event: any) => {
+            announceProvider();
+        }
     );
-  
+
     announceProvider();
-  }
+}
 
 const listners = {
     accountsChanged: new Set<(p?: any) => void>(),
@@ -60,12 +60,12 @@ const UIpromResolvers = new Map()
 
 const getListnersCount = (): number => {
     let count = 0
-    for(const key of Object.keys(listners)) {
-        if(key === 'once'){
-            for(const onceKey of Object.keys(listners[key])) {
+    for (const key of Object.keys(listners)) {
+        if (key === 'once') {
+            for (const onceKey of Object.keys(listners[key])) {
                 count += (<any>listners)[key][onceKey]?.length
             }
-        }else {
+        } else {
             count += (<any>listners)[key].length
         }
     }
@@ -73,43 +73,45 @@ const getListnersCount = (): number => {
 }
 
 const sendMessage = (args: RequestArguments, ping = false, from = 'request'): Promise<unknown> => {
+    console.log(args)
     return new Promise((resolve, reject) => {
-    const p = [ "eth_signTypedData", "eth_signTypedData_v3", "eth_signTypedData_v4"]
-    const throttledMethods = [...p, 'eth_sign', 'personal_sign', 'eth_sendTransaction']
-    
-    const isThrottled = throttledMethods.includes(args.method)
-    
-    if(UIpromResolvers.size > MAX_PROMISES && isThrottled) {
-        reject({code: -32000, message: 'ClearWallet: Too many requests', error: true })
-        return
-    }
-        
+        const p = ["eth_signTypedData", "eth_signTypedData_v3", "eth_signTypedData_v4"]
+        const throttledMethods = [...p, 'eth_sign', 'personal_sign', 'eth_sendTransaction']
+
+        const isThrottled = throttledMethods.includes(args.method)
+
+        if (UIpromResolvers.size > MAX_PROMISES && isThrottled) {
+            reject({ code: -32000, message: 'ClearWallet: Too many requests', error: true })
+            return
+        }
+
         const resId = [...`${Math.random().toString(16) + Date.now().toString(16)}`].slice(2).join('')
-        if(isThrottled) {
+        if (isThrottled) {
             UIpromResolvers.set(resId, { resolve, reject })
         }
-            promResolvers.set(resId, { resolve, reject })
+        promResolvers.set(resId, { resolve, reject })
 
-        
+
         const method = args.method
         if (p.includes(args.method)) {
             args.method = undefined as any
         }
-        const data = { 
-            type: "CLWALLET_CONTENT", 
+        const data = {
+            type: "CLWALLET_CONTENT",
             target: 'metamask-contentscript',
             data: {
                 method,
-                name: 'metamask-provider', data: args, jsonrpc: '2.0', id: Number(resId.replace(/[A-Za-z]/g, '').slice(0, 10)) },
+                name: 'metamask-provider', data: args, jsonrpc: '2.0', id: Number(resId.replace(/[A-Za-z]/g, '').slice(0, 10))
+            },
             resId,
             from,
         }
         if (ping) {
             data.type = 'CLWALLET_PING'
         }
-        if(method!== 'eth_chainId') {
-        // console.info('data in', data)          
-    }
+        if (method !== 'eth_chainId') {
+            // console.info('data in', data)          
+        }
 
         window.postMessage(data, "*");
     })
@@ -119,8 +121,8 @@ const sendMessage = (args: RequestArguments, ping = false, from = 'request'): Pr
 class MetaMaskAPI {
     isMetaMask = true
     isClWallet = true
-    _state = {accounts: Array(1), isConnected: true, isUnlocked: true, initialized: true, isPermanentlyDisconnected: false}
-    _sentWarnings = {enable: false, experimentalMethods: false, send: false, events: {}}
+    _state = { accounts: Array(1), isConnected: true, isUnlocked: true, initialized: true, isPermanentlyDisconnected: false }
+    _sentWarnings = { enable: false, experimentalMethods: false, send: false, events: {} }
     // Deprecated - hardcoded for now, websites should not access this directly since is deprecated for a long time
     chainId = "0x89"
     // Deprecated - hardcoded for now, websites should not access this directly since is deprecated for a long time
@@ -132,9 +134,9 @@ class MetaMaskAPI {
     _eventsCount = 2
     _jsonRpcConnection = {}
     _log = {}
-    _maxListeners=  100
+    _maxListeners = 100
     _metamask = new Proxy({
-        isUnlocked: () => { 
+        isUnlocked: () => {
             return Promise.resolve(true)
         },
         requestBatch: () => {
@@ -148,45 +150,46 @@ class MetaMaskAPI {
         return true
     }
     // for maximum compatibility since is cloning the same API
-    
+
     enable() {
-        return sendMessage({ method: 'eth_requestAccounts', params: Array(0)})
+        return sendMessage({ method: 'eth_requestAccounts', params: Array(0) })
     }
 
     request(args: RequestArguments): Promise<unknown> {
+        console.log(args)
         return sendMessage(args) as Promise<unknown>
     }
     // Deprecated
-    sendAsync (arg1: any, arg2: any): void | Promise<unknown>  {
+    sendAsync(arg1: any, arg2: any): void | Promise<unknown> {
         // return this.send(arg1, arg2) as any
-        if( typeof arg1 === 'string' ) {
+        if (typeof arg1 === 'string') {
             return sendMessage({
                 method: arg1,
                 params: arg2 as object
-            }, false , 'sendAsync') as Promise<unknown>
-        }else if (typeof arg2 === 'function'){
-                ((sendMessage(arg1 as RequestArguments, false, 'sendAsync') as Promise<unknown>).then(result => {
-                    (arg2 as (e?: any, r?: any) => any )(undefined, {
-                            id: (arg1 as RequestArguments)?.id,
-                            jsonrpc: '2.0',
-                            method: (arg1 as RequestArguments).method,
-                            result
-                          }
-                    ) 
-                }) as Promise<unknown>).catch( e => {
-                    (arg2 as (er?: any, r?: any) => any )(new Error(e), {
-                        id: (arg1 as RequestArguments)?.id,
-                        jsonrpc: '2.0',
-                        method: (arg1 as RequestArguments).method,
-                        error: new Error(e)
-                      }
+            }, false, 'sendAsync') as Promise<unknown>
+        } else if (typeof arg2 === 'function') {
+            ((sendMessage(arg1 as RequestArguments, false, 'sendAsync') as Promise<unknown>).then(result => {
+                (arg2 as (e?: any, r?: any) => any)(undefined, {
+                    id: (arg1 as RequestArguments)?.id,
+                    jsonrpc: '2.0',
+                    method: (arg1 as RequestArguments).method,
+                    result
+                }
                 )
-                })
-            } else {
-                return sendMessage(arg1 as RequestArguments, false, 'sendAsync') as Promise<unknown>
-            }
+            }) as Promise<unknown>).catch(e => {
+                (arg2 as (er?: any, r?: any) => any)(new Error(e), {
+                    id: (arg1 as RequestArguments)?.id,
+                    jsonrpc: '2.0',
+                    method: (arg1 as RequestArguments).method,
+                    error: new Error(e)
+                }
+                )
+            })
+        } else {
+            return sendMessage(arg1 as RequestArguments, false, 'sendAsync') as Promise<unknown>
+        }
     }
-    send (arg1: unknown, arg2: unknown): unknown {
+    send(arg1: unknown, arg2: unknown): unknown {
         const resultFmt = async (result: Promise<any>) => {
             return {
                 "id": 0,
@@ -195,35 +198,35 @@ class MetaMaskAPI {
             }
         }
         if (arg2 === undefined) {
-            if( typeof arg1 === 'string' ) {
+            if (typeof arg1 === 'string') {
                 return resultFmt(sendMessage({
                     method: arg1,
                     params: undefined
-                }, false, 'send')) 
+                }, false, 'send'))
             }
             return resultFmt(sendMessage(arg1 as RequestArguments, false, 'send'))
-      } else if (typeof arg1 === 'object') {
-                if( typeof arg1 === 'string' ) {
-                    return resultFmt(sendMessage({
-                        method: arg1,
-                        params: undefined
-                    }, false, 'send')) 
+        } else if (typeof arg1 === 'object') {
+            if (typeof arg1 === 'string') {
+                return resultFmt(sendMessage({
+                    method: arg1,
+                    params: undefined
+                }, false, 'send'))
             }
             return resultFmt(sendMessage(arg1 as RequestArguments, false, 'send'))
-        }else if( typeof arg1 === 'string' ) {
-            return resultFmt( sendMessage({
+        } else if (typeof arg1 === 'string') {
+            return resultFmt(sendMessage({
                 method: arg1,
                 params: arg2 as object
             }, false, 'send'))
         }
         return resultFmt(sendMessage(arg1 as RequestArguments, false, 'send'))
     }
-    on (eventName: string, callback: () => void) {
+    on(eventName: string, callback: () => void) {
         this.addListener(eventName, callback)
         return this
     }
 
-    addListener (eventName: string, callback: () => void) {
+    addListener(eventName: string, callback: () => void) {
         switch (eventName) {
             case 'accountsChanged':
                 listners.accountsChanged.add(callback)
@@ -248,7 +251,7 @@ class MetaMaskAPI {
         return this
     }
 
-    once (eventName: string, callback: () => void) {
+    once(eventName: string, callback: () => void) {
         switch (eventName) {
             case 'accountsChanged':
                 listners.once.accountsChanged.add(callback)
@@ -272,11 +275,11 @@ class MetaMaskAPI {
         }
         return this
     }
-    off (eventName: string, callback: () => void) {
+    off(eventName: string, callback: () => void) {
         (this).removeListener(eventName, callback)
         return this
     }
-    removeListener (eventName: string, callback: () => void) {
+    removeListener(eventName: string, callback: () => void) {
         switch (eventName) {
             case 'accountsChanged':
                 listners.accountsChanged.delete(callback)
@@ -299,8 +302,8 @@ class MetaMaskAPI {
         }
         return this
     }
-    
-    removeAllListeners()  {
+
+    removeAllListeners() {
         listners.accountsChanged.clear()
         listners.chainChanged.clear()
         listners.disconnect.clear()
@@ -308,16 +311,16 @@ class MetaMaskAPI {
         return this
     }
 
-    getMaxListeners()  {
+    getMaxListeners() {
         return 100
     }
-    _getExperimentalApi ()  {
+    _getExperimentalApi() {
         return this._metamask
     }
-    eventNames () {
+    eventNames() {
         return []
     }
-    listenerCount () {
+    listenerCount() {
         return getListnersCount()
     }
     listners() { return [] }
@@ -333,52 +336,49 @@ class MetaMaskAPI {
     _handleDisconnect() { return true }
     _handleStreamDisconnect() { return true }
     _handleUnlockStateChanged() { return true }
-    _sendSync () {
+    _sendSync() {
         console.warn('ERROR: Clear Wallet: Sync calling is deprecated and not supported')
     }
 }
 
-const eth = new Proxy( new MetaMaskAPI(), {
+const eth = new Proxy(new MetaMaskAPI(), {
     deleteProperty: () => { return true },
-    // set(obj, prop, value) {
-    //     // Reflect.set(obj, prop, value);
-    //     return true;
-    //   }
 })
 
-const listner =  function(event: any) {
+const listner = function (event: any) {
     if (event.source != window) return;
-    if(!['CLWALLET_PAGE', 'CLWALLET_PAGE_LISTENER'].includes(event?.data?.type)) return;
+    if (!['CLWALLET_PAGE', 'CLWALLET_PAGE_LISTENER'].includes(event?.data?.type)) return;
+    console.log(event)
     const eventData = event?.data
     const eventDataData = event?.data?.data
     const eventDataDataData = event?.data?.data?.data
     const resId = eventData?.resId
     const result = eventDataDataData?.result
     if (eventData?.type === "CLWALLET_PAGE") {
-    try {
-        if(result?.error){
-            promResolvers.get(resId).reject(result);
-        }else {
-            promResolvers.get(resId).resolve(result);
+        try {
+            if (result?.error) {
+                promResolvers.get(resId).reject(result);
+            } else {
+                promResolvers.get(resId).resolve(result);
+            }
+        } catch (e) {
+            // console.error('Failed to connect resolve msg', e)
+            promResolvers.get(resId)?.reject({ code: -32000, message: 'Failed to connect resolve msg', error: true });
         }
-    } catch (e) {
-        // console.error('Failed to connect resolve msg', e)
-        promResolvers.get(resId)?.reject({code: -32000, message: 'Failed to connect resolve msg', error: true });
-    }
-    } else if(eventData?.type === "CLWALLET_PAGE_LISTENER") {
-        if((eventDataData?.listner ?? 'x') in listners ) {
+    } else if (eventData?.type === "CLWALLET_PAGE_LISTENER") {
+        if ((eventDataData?.listner ?? 'x') in listners) {
             try {
                 const listnerName = eventDataData.listner as ('accountsChanged' | 'connect' | 'disconnect' | 'chainChanged')
-                if( listnerName === 'connect' && eventDataData) {
+                if (listnerName === 'connect' && eventDataData) {
                     (<any>eth).networkVersion = String(parseInt(eventDataDataData?.chainId ?? "0x89", 16));
                     (<any>eth).chainId = eventDataDataData?.chainId ?? '0x89';
                     (<any>eth).selectedAddress = eventDataData?.address?.[0] ?? null;
                     (<any>eth).accounts = eventDataData.address?.[0] ? [eventDataData.address?.[0]] : [];
                     (<any>eth).isConnected = () => true;
-                } else if( listnerName === 'chainChanged' ) {
+                } else if (listnerName === 'chainChanged') {
                     (<any>eth).networkVersion = String(parseInt(eventDataDataData ?? "0x89", 16));
                     (<any>eth).chainId = eventDataData ?? '0x89';
-                } else if ( listnerName === 'accountsChanged' ) {
+                } else if (listnerName === 'accountsChanged') {
                     (<any>eth).accounts = eventDataData?.[0] ? [eventDataData?.[0]] : [];
                     (<any>eth).selectedAddress = eventDataData?.[0] ?? '';
                 }
@@ -393,16 +393,16 @@ const listner =  function(event: any) {
             }
         }
     }
-    if(promResolvers.has(resId)) {
+    if (promResolvers.has(resId)) {
         promResolvers.delete(resId)
     }
-    if(UIpromResolvers.has(resId)) {
+    if (UIpromResolvers.has(resId)) {
         UIpromResolvers.get(resId).resolve(result)
         UIpromResolvers.delete(resId)
     }
-  }
+}
 
-window.addEventListener("message",listner)
+window.addEventListener("message", listner)
 
 Object.defineProperties(eth, {
     selectedAddress: { enumerable: false },
@@ -416,135 +416,21 @@ const web3Shim = {
 }
 
 const injectWallet = () => {
-const ethKey = 'ethereum'
-if ((window as any)[ethKey]?.isClWallet) {
-    return;
-}
+    const ethKey = 'ethereum'
+    if ((window as any)[ethKey]?.isClWallet) {
+        return;
+    }
 
-Object.defineProperty((window as any), ethKey, {
-    value: eth,
-});
-Object.defineProperty((window as any), 'web3', {
-    value: web3Shim
-});
-sendMessage({
-    method: 'wallet_ready'
-}, true)
+    Object.defineProperty((window as any), ethKey, {
+        value: eth,
+    });
+    Object.defineProperty((window as any), 'web3', {
+        value: web3Shim
+    });
+    sendMessage({
+        method: 'wallet_ready'
+    }, true)
 }
 
 injectWallet();
 loadEIP1193Provider(eth)
-
-
-// HELPERS TO CLONE METAMASK API
-
-
-// const MMReflect = async () => {
-
-//     await new Promise((resolve) => setTimeout(resolve, 2000))
-
-//     const originalRequest = (window as any).ethereum.request
-//     const originalSend = (window as any).ethereum.send
-//     const originalSendAsync = (window as any).ethereum.sendAsync
-
-//     const methods = [originalRequest, originalSend, originalSendAsync]
-//     const originalMethods = ['request', 'send', 'sendAsync']
-
-//     for(const [index, method] of methods.entries()) {
-//         const methodName = originalMethods[index];
-//         (window as any).ethereum[methodName] = new Proxy(method, {
-//             apply(target, thisArg, argsList) {
-//                 const isEthChainId = argsList[0]?.method === 'eth_chainId'
-
-//                 const result = Reflect.apply(target, thisArg, argsList) as Promise<unknown>
-//                 const resultCLW = Reflect.apply(sendMessage, thisArg, argsList) as Promise<unknown>
-                
-//                 if(!isEthChainId) {
-//                  result?.then((res: any) => {
-//                     resultCLW?.then((resCLW: any) => {
-//                         console.log(`window.ethereum.${methodName} ${JSON.stringify(argsList, null, 2)} result:`, res, resCLW);
-//                     })
-//                 })
-//                 }
-
-//                 return result;
-//             }
-//         });
-//     }
-
-//         console.log('Reflecting Metamask API')
-// }
-
-
-// MMReflect()
-
-// window.addEventListener("message" , (event) => {
-//     console.log('event', JSON.stringify(event?.data?.data, null, 2), JSON.stringify(event?.data, null, 2))
-// })
-
-// setTimeout(() => {
-//     console.log('Metamask clone test');
-//     console.log((<any>window).ethereum.send({
-//         "jsonrpc": "2.0",
-//         "method": "eth_accounts",
-//         "params": [],
-//         "id": 0
-//     }))
-//     console.log((<any>window).ethereum.request({
-//         "jsonrpc": "2.0",
-//         "method": "eth_accounts",
-//         "params": [],
-//         "id": 0
-//     }))
-// }, 5000)
-
-// setTimeout(async () => {
-//     console.log('Metamask clone test');
-//     // (<any>window).ethereum.request({method: 'eth_requestAccounts', params: Array(0)}).then((res: any) => { console.log(res, 'MT: eth_requestAccounts')});
-//     // (<any>window).ethereum2.request({method: 'eth_requestAccounts', params: Array(0)}).then((res: any) => { console.log(res, 'CW: eth_requestAccounts')});
-
-//     // await new Promise((resolve) => setTimeout(resolve, 1000));
-
-//     // (<any>window).ethereum.request({method: 'eth_accounts', params: Array(0)}).then((res: any) => { console.log(res, 'MT: eth_accounts')});
-//     // (<any>window).ethereum2.request({method: 'eth_accounts', params: Array(0)}).then((res: any) => { console.log(res, 'CW: eth_accounts')});
-
-//     // await new Promise((resolve) => setTimeout(resolve, 1000));
-
-//     (<any>window).ethereum.request({method: 'eth_chainId', params: Array(0)}).then((res: any) => { console.log(res, 'MT: eth_chainId')});
-//     (<any>window).ethereum2.request({method: 'eth_chainId', params: Array(0)}).then((res: any) => { console.log(res, 'CW: eth_chainId')});
-
-//     // await new Promise((resolve) => setTimeout(resolve, 1000));
-
-
-//     // (<any>window).ethereum.request({method: 'eth_blockNumber', params:  Array(0)}).then((res: any) => { console.log(res, 'MT: eth_chainId')});
-//     // (<any>window).ethereum2.request({method: 'eth_blockNumber', params:  Array(0)}).then((res: any) => { console.log(res, 'CW: eth_chainId')});
-    
-//     // await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    
-//     // (<any>window).ethereum.request({method: 'wallet_requestPermissions', params: [{eth_accounts: {}}]}).then((res: any) => { console.log(res, 'MT: wallet_requestPermissions')});
-//     // (<any>window).ethereum2.request({method: 'wallet_requestPermissions', params: [{eth_accounts: {}}]}).then((res: any) => { console.log(res, 'CW: wallet_requestPermissions')});
-
-//     // await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-//     // (<any>window).ethereum.request({method: 'net_version', params: []}).then((res: any) => { console.log(res, 'MT: net_version')});
-//     // (<any>window).ethereum2.request({method: 'net_version', params: []}).then((res: any) => { console.log(res, 'CW: net_version')});
-
-//     // await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-//     // (<any>window).ethereum.request({method: 'wallet_switchEthereumChain', params: [{chainId: "0x89"}]}).then((res: any) => { console.log(res, 'MT: wallet_switchEthereumChain')});
-//     // (<any>window).ethereum2.request({method: 'wallet_switchEthereumChain', params: [{chainId: "0x89"}]}).then((res: any) => { console.log(res, 'CW: wallet_switchEthereumChain')});
-
-//     // await new Promise((resolve) => setTimeout(resolve, 1000));
-
-//     // (<any>window).ethereum.on('connect', ((a: any, b: any) => console.log('connect MT', a, b)));
-//     // (<any>window).ethereum.on('accountsChanged', ((a: any, b: any) => console.log('accountsChanged MT', a, b)));
-//     // (<any>window).ethereum.on('chainChanged', ((a: any) => console.log('chainChanged MT', a, typeof a)));
-  
-//     // await new Promise((resolve) => setTimeout(resolve, 1000));
-
-//     // (<any>window).ethereum2.on('connect', ((a: any, b: any) => console.log('connect CW', a, b)));
-//     // (<any>window).ethereum2.on('accountsChanged', ((a: any, b: any) => console.log('accountsChanged CW', a, b)));
-//     // (<any>window).ethereum2.on('chainChanged', ((a: any) => console.log('chainChanged CW', a, typeof a)));
-
-// }, 3500)

@@ -41,6 +41,7 @@ window.addEventListener("message", (event) => {
   if (event.source != window)
     return;
   if (event?.data?.type === "CLWALLET_CONTENT") {
+    console.log("from inject", event)
     event.data.data.data.resId = event.data.resId
     event.data.data.data.type = "CLWALLET_CONTENT_MSG"
     event.data.data.data.website = document?.location?.href ?? ''
@@ -48,6 +49,7 @@ window.addEventListener("message", (event) => {
       event.data.data.data.method = event?.data?.data?.method ?? ''
       try {
         chrome?.runtime?.sendMessage(event.data.data.data, (res) => {
+          console.log("frombackground", res)
           if (chrome.runtime.lastError) {
             console.warn("LOC1: Error sending message:", chrome.runtime.lastError);
           }

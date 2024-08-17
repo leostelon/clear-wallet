@@ -205,6 +205,7 @@ const chainIdThrottleFn = async (website: string) => {
 }
 
 const mainListner = (message: RequestArguments, sender: any, sendResponse: (a: any) => any) => {
+    console.log(message);
     if (chrome.runtime.lastError) {
         console.info("Error receiving message:", chrome.runtime.lastError);
     }
@@ -417,6 +418,7 @@ const mainListner = (message: RequestArguments, sender: any, sendResponse: (a: a
                             const urlKey = await chainIdThrottleFn(message?.website ?? '')
                             const network = await getSelectedNetwork()
                             const chainId = network?.chainId ?? 1
+                            console.log(isNetVersion ? chainId.toString() : `0x${chainId.toString(16)}`)
                             sendResponse(isNetVersion ? chainId.toString() : `0x${chainId.toString(16)}`)
                             chainIdThrottle[urlKey] -= 1
                         } catch (e) {
